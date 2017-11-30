@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>TMAP 거리 시간 계산</title>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+<meta charset="utf-8">
+<style>
+</style>
+</head>
+<script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=b9cc3c71-cdbe-351e-a2fe-1c992bdd9ee3"></script>
+<script type="text/javascript">
+
+    // var map;
+    // var mapW, mapH;     // 지도의 가로, 세로 크기(Pixel단위) 를 지정 합니다. 
+    // var testLonLat, zoom;      //중심 좌표와 지도레벨을 정의 합니다. 
+    var map, markers, lonlat, zoom;
+    function setVariables(){    
+        testLonLat = new Tmap.LonLat(14135912.880612050, 4518334.160091842);  
+                //중심점 좌표 입니다. EPSG3857 좌표계 형식 입니다. 
+        zoom = 16;  // zoom level입니다.  0~19 레벨을 서비스 하고 있습니다. 
+        mapW = '100%';  // 지도의 가로 크기 입니다. 
+        mapH = '500px';  // 지도의 세로 크기 입니다. 
+    }
+     
+    function init() {
+        map = new Tmap.Map({div:'map_div', height:'500px'});
+        lonlat = new Tmap.LonLat(14141812.583474, 4512348.422603);
+        zoom = 16;
+        map.setCenter(lonlat,zoom);
+        markers = new Tmap.Layer.Markers( "MarkerLayer" );
+        map.addLayer(markers);
+        
+        var size = new Tmap.Size(35,35);
+        var offset = new Tmap.Pixel(-(size.w/2), -size.h);
+        var icon = new Tmap.Icon('../test_jerome/map-marker-red-2-48.png',size,offset);
+        var label = new Tmap.Label('<div>김태희 팬 레터 주소</div>');
+        var marker = new Tmap.Markers(lonlat, icon, label);
+        marker.events.register("mouseover", marker, onOverMarker);
+        marker.events.register("mouseout", marker, onMarkerOut);
+        markers.addMarker(marker);
+
+        tData = new Tmap.TData();
+        console.log(tData);
+        tData.events.register("onComplete", tData,onCompleteLoadGetPOIDataFromSearch);
+//         tData.events.register("onProgress", tData, onProgressLoadPoiData);
+//         tData.events.register("onError", tData, onErrorLoadPoiData);
+               
+    }
+    function onOverMarker (evt){
+        label.show();
+    }
+    function onMarkerOut(evt){
+        label.hide();
+    }
+
+    function onCompleteLoadGetPOIDataFromSearch()
+    {
+        jQuery("#searchResult").html("");
+        var size = new Tmap.Size(22,30);
+        var offset = newTmap.Pixel(-(size.w/2), -size.h);
+
+        if(jQuery(this.responseXML).find("searchPoiInfopoispoi").text() != '')
+        {
+ 
+            jQuery(this.responseXML).find("searchPoiInfopoispoi").each(function(){
+ 
+                varname = jQuery(this).find("name").text();
+     
+                varupperAddrName= jQuery(this).find("upperAddrName").text();
+
+                varmiddleAddrName= jQuery(this).find("middleAddrName").text();
+ 
+                varlowerAddrName= jQuery(this).find("lowerAddrName").text();
+
+                varupperBizName= jQuery(this).find("upperBizName").text();
+
+                varmiddleBizName= jQuery(this).find("middleBizName").text();
+
+                varlowerBizName= jQuery(this).find("lowerBizName").text();
+
+                vardetailBizName= jQuery(this).find("detailBizName").text();
+
+
+                varcoordX= jQuery(this).find("frontLon").text();
+
+                varcoordY= jQuery(this).find("frontLat").text();
+
+                vartrLonLat= get3857LonLat(coordX, coordY);
+
+                varnameArray= [];
+
+                nameArray= name.split("(");
+
+                if(name.length>20){
+                    name= nameArray[0]+'<br/>('+nameArray[1];
+                }    
+
+
+                if(jQuery(this).index() >= 10) 
+                {
+                    jQuery("#searchResult").append('<div><spanclass="num">'+(jQuery(this).index()+1)+'</span>&nbsp;<spanclass="imgSpan"><imgsrc="http://map.nate.com/img/contents/ico_spot.png"></span><spanclass="poiResultList"><ahref="javascript:selectPoi('+coordX+','+coordY+')"style="text-decoration:none; *margin-top:-10px;">'+name+'</a></span></div><br/><br/>');
+ 
+                    var icon = new Tmap.IconHtml("<imgsrc=http://map.nate.com/img/contents/ico_spot.png/>", size, offset);
+ 
+                } else {
+ 
+                    jQuery("#searchResult").append('<div><spanclass="num">'+(jQuery(this).index()+1)+'</span>&nbsp;<spanclass="imgSpan"><img src="img/ico_cg1_b_'+(jQuery(this).index()+1)+'.png"></span><spanclass="poiResultList"><ahref="javascript:selectPoi('+coordX+','+coordY+')"style="text-decoration:none;*margin-top:-10px;">'+name+'</a></span></div><br/><br/>');
+
+                    var icon = newTmap.IconHtml("<imgsrc='img/ico_cg1_b_"+(jQuery(this).index()+1)+".png'/>",size, offset);
+                }
+
+                var label = new Tmap.Label("&nbsp;상호명 : "+ name + "<br/><br/>&nbsp;주소 : " + upperAddrName + " " +middleAddrName + "" + lowerAddrName+"<br/><br/>&nbsp;구분 : "+upperBizName + "&nbsp;&gt;&nbsp;"+middleBizName + "&nbsp;&gt;&nbsp;" + lowerBizName +"&nbsp;&gt;&nbsp;" + detailBizName);
+
+                var marker = new Tmap.Markers(newTmap.LonLat(coordX, coordY), icon, label)            
+                markers.addMarker(marker);
+                marker.events.register('mouseover',marker, onMarkerOver);
+                marker.events.register('mouseout',marker, onMarkerOut);
+            });
+
+        } else if (jQuery(this.responseXML).find("error").text() != ''){
+            varerrorMessage= jQuery(this.responseXML).find("error message").text();
+            alert(errorMessage);
+
+        }else{
+            alert('검색결과가없습니다.');
+        }
+
+
+        if(jQuery(this.responseXML).find("searchPoiInfopoispoi").text() != '')
+        {
+            map.zoomToExtent(markers.getDataExtent());
+        }else{
+            map.setCenter(newTmap.LonLat(14134074.680985, 4517814.0870894),15);
+            markers.clearMarkers();   
+        }
+    }
+
+</script>
+    </head>
+    <body onload="init()">
+        <div id="map_div"></div>
+    </body>
+</html>

@@ -1,0 +1,348 @@
+
+<!-- <!DOCTYPE html> -->
+<!-- <html> -->
+<!-- <head> -->
+<!-- <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyD4L5BMWzhMUfgloLbcAiF3DzUuZZuoFvo&sensor=false"> -->
+<!-- </script> -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Place Autocomplete</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <script src="//code.jquery.com/jquery.min.js"></script>
+    <meta charset="utf-8">
+    <style>
+      #right-panel {
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+      #right-panel select, #right-panel input {
+        font-size: 15px;
+      }
+
+      #right-panel select {
+        width: 100%;
+      }
+
+      #right-panel i {
+        font-size: 12px;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        width: 30%;
+      }
+      #right-panel {
+        float: right;
+        width: 58%;
+        padding-left: 2%;
+      }
+      #output {
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="right-panel">
+      <div id="inputs">
+      </div>
+      <div>
+        <strong>Results</strong>
+      </div>
+      <div id="output"></div>
+    </div>
+    <div id="map"></div>
+    <script>
+    	var origin_check;
+    	var destination_check;
+		function initMap() {
+			var origin = {lat: 55.93, lng: -3.118};
+	        var destination = {lat: 50.087, lng: 14.421};
+// 	        var origin = {lat: 37.495874, lng: 126.906361};
+// 	        var destination = {lat: 37.515622, lng: 127.118271};
+// 			getLeadTime_Jerome(origin, destination, 'DRIVING');
+// 			getLeadTime_Jerome(origin, destination, 'TRANSIT');
+			getLeadTime_Jerome(origin, destination, 'WALKING');
+		}
+		
+     	// 검색 국가 확인 후 이동시간 계산 - <2017-09-16 Jerome>
+      	function getLeadTime_Jerome(origin, destination, transport) {
+      		// origin - 출발지 ( 좌표 값 )
+      		// destination - 목적지 ( 좌표 값 )
+      		// transport - 이동수단 ( DRIVING - 자동차 , TRANSIT - 대중교통, WALKING - 도보 )
+      		
+      		// console.log(origin);
+      		// console.log(destination);
+      		var console_Transport;
+      		if(transport == "DRIVING") { console_Transport = "자동차";} 
+      		else if(transport == "TRANSIT") { console_Transport = "대중교통";	}
+      		else if(transport == "WALKING") { console_Transport = "보행자"; }
+      		else { console_Transport = "이동수단을 확인할 수 없습니다."; }
+      		console.log(console_Transport);
+      		
+      		var origin_check;
+      		var destination_check;
+      		
+      		var geocoder = new google.maps.Geocoder;
+  			geocoder.geocode({
+      			'location' : origin
+      		}, function(results, status) {
+      			if(status === "OK") {
+      				for(var i=0; i<results.length; i++) {
+      					if(results[i].formatted_address.indexOf('대한민국') != -1) {
+      						origin_check = "korea";
+      						break;
+      					} else {
+      						origin_check = "not korea";
+      					}
+      				}
+      				
+      				geocoder.geocode({
+      	      			'location' : destination
+      	      		}, function(results, status) {
+      	      			if(status === "OK") {
+      	      				for(var i=0; i<results.length; i++) {
+      	      					if(results[i].formatted_address.indexOf('대한민국') != -1) {
+      	      						destination_check = "korea";
+      	      						break;
+      	      					} else {
+      	      						destination_check = "not korea";
+      	      					}
+      	      				}
+      	      				// console.log(origin_check);
+      	      				// console.log(destination_check);
+      	      				var check_countries_result = check_countries(origin_check, destination_check, transport);
+      	      				console.log(check_countries_result);
+      	      				if(check_countries_result == "T MAP 실행") {
+      	      					getLeadTime_TMAP_Jerome(origin, destination, transport);
+      	      				} else if(check_countries_result == "GOOGLE MAP 실행") {
+      	      					getLaedTime_GOOGLE_Jerome(origin, destination, transport);
+      	      				} else {
+      	      					alert(check_countries_result);
+      	      				}
+      	      			}
+      	      		});
+      			}
+	      	});
+  			
+      	}
+      	
+      	function check_countries(origin_check, destination_check, transport) {
+    		console.log(origin_check);
+    		console.log(destination_check);
+    		var result;
+      		if(origin_check == destination_check) {
+      			if(origin_check == "korea" && transport != "TRANSIT") {
+      				result = "T MAP 실행"; 
+      			} else {
+      				result = "GOOGLE MAP 실행";
+      			}
+      		} else {
+      			if(origin_check == "korea") {
+      				result = "다른 나라를 식별할 수 없습니다.";
+      			} else {
+      				result = "Unable to identify other countries.";
+      			}
+      		}
+      		return result;
+      	}
+      	
+     	// 이동시간 계산 ( Google ) - <2017-09-16 Jerome>
+      	function getLaedTime_GOOGLE_Jerome(origin, destination, transport) {
+      		
+      		var geocoder = new google.maps.Geocoder;
+      		var service = new google.maps.DistanceMatrixService;
+      		
+      		service.getDistanceMatrix({
+      			origins: [origin],
+      			destinations: [destination],
+      			travelMode: transport,
+      			unitSystem: google.maps.UnitSystem.METRIC,
+      			avoidHighways: false,
+      			avoidTolls: false,
+      		}, function(response, status) {
+      			if(status !== 'OK') {
+      				alert('Error was : ' + status);
+      			} else {
+      				// console.log(response);
+      				
+      				// console.log(response.originAddresses);
+      				var originList = response.originAddresses;
+      				// console.log(originList[0]);
+      				
+      				var destinationList = response.destinationAddresses;
+      				// console.log(destinationList[0]);
+      				
+      				var results = response.rows[0].elements;
+      				
+      				console.log("출발지 : " + originList[0] + "\n" 
+      							+ "목적지 : " + destinationList[0] + "\n"
+      							+ "이동거리 : " + results[0].distance.text + "\n"
+      							+ "소요시간 : " + results[0].duration.text );
+      				console.log("상세 거리 : " + results[0].distance.value);
+      				console.log("상세 시간 : " + results[0].duration.value);
+      				
+      				var now_date = new Date();
+      				var now_year = now_date.getYear() + 1900;
+      				// console.log(now_year + " 년");
+      				var now_month = now_date.getMonth() + 1;
+      				// console.log(now_month + " 월");
+      				var now_day = now_date.getDate();
+      				// console.log(now_day + " 일");
+      				var now_hour = now_date.getHours();
+      				// console.log(now_hour + " 시");
+      				var now_minutes = now_date.getMinutes();
+      				// console.log(now_minutes + " 분");
+      				var now_seconds = now_date.getSeconds();
+      				// console.log(now_seconds + " 초");
+      				var week = new Array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
+         			var now_week_num = now_date.getDay();
+         			var now_week_kor = week[now_date.getDay()];
+// 	          		console.log(now_week_num);
+// 	          		console.log(now_week_kor);
+	          				
+	          		console.log("현재 시간 : "
+	          					+ now_year + " 년 "
+	          					+ now_month + " 월 "
+	          					+ now_day + " 일 - "
+	          					+ now_hour + " 시 "
+	          					+ now_minutes + " 분 "
+	          					+ now_seconds + " 초 "
+	          					+ "(" + now_week_kor + ")");
+      				
+      				// 상점 마감시간 확인 함수 실행 - <2017-09-17 Jerome>
+      				getStoreFinishedTime_Jerome();
+      			}
+      		});
+      	}
+      	
+    	// 이동시간 계산 ( TMAP ) - <2017-09-16 Jerome>
+      	function getLeadTime_TMAP_Jerome(origin, destination, transport) {
+//       		console.log(origin);
+//       		console.log(origin.lat);
+//       		console.log(origin.lng);
+//       		console.log(destination);
+//       		console.log(destination.lat);
+//       		console.log(destination.lng);
+      		if(transport == "DRIVING") {
+	      		$(function(){
+	                console.log("자동차 경로안내 API 요청 시작");
+	                $.ajax({
+	                    method: "POST",
+	                    url: "https://apis.skplanetx.com/tmap/routes?version=1",
+	                    headers: {
+	                        "Content-Type": "application/x-www-form-urlencoded",
+	                        "appKey": "b9cc3c71-cdbe-351e-a2fe-1c992bdd9ee3"
+	                    },
+	                    data: "startX="+origin.lng+"&startY="+origin.lat+"&endX="+destination.lng+"&endY="+destination.lat+"&reqCoordType=WGS84GEO&resCoordType=WGS84GEO",
+	                    success: function(result){
+	                    	console.log(result);
+	                        console.log("totalDistance(단위: m) :" + result.features[0].properties.totalDistance);
+	                        console.log("totalTime(단위: 초) :" + result.features[0].properties.totalTime);
+	                        
+	                        var now_date = new Date();
+	          				var now_year = now_date.getYear() + 1900;
+	          				// console.log(now_year + " 년");
+	          				var now_month = now_date.getMonth() + 1;
+	          				// console.log(now_month + " 월");
+	          				var now_day = now_date.getDate();
+	          				// console.log(now_day + " 일");
+	          				var now_hour = now_date.getHours();
+	          				// console.log(now_hour + " 시");
+	          				var now_minutes = now_date.getMinutes();
+	          				// console.log(now_minutes + " 분");
+	          				var now_seconds = now_date.getSeconds();
+	          				// console.log(now_seconds + " 초");
+	          				var week = new Array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
+	          				var now_week_num = now_date.getDay();
+	          				var now_week_kor = week[now_date.getDay()];
+// 	          				console.log(now_week_num);
+// 	          				console.log(now_week_kor);
+	          				
+	          				console.log("현재 시간 : "
+	          							+ now_year + " 년 "
+	          							+ now_month + " 월 "
+	          							+ now_day + " 일 - "
+	          							+ now_hour + " 시 "
+	          							+ now_minutes + " 분 "
+	          							+ now_seconds + " 초 "
+	          							+ "(" + now_week_kor + ")");
+	          				
+	          				// 상점 마감시간 확인 함수 실행 - <2017-09-17 Jerome>
+	          				getStoreFinishedTime_Jerome();
+	                    }               
+	                });
+	            });
+      		} else if(transport == "WALKING") {
+      			$(function(){
+	                console.log("보행자 경로안내 API 요청 시작");
+	                $.ajax({
+	                    method: "POST",
+	                    url: "https://apis.skplanetx.com/tmap/routes/pedestrian?version=1",
+	                    headers: {
+	                        "Content-Type": "application/x-www-form-urlencoded",
+	                        "appKey": "b9cc3c71-cdbe-351e-a2fe-1c992bdd9ee3"
+	                    },
+	                    data: "startX="+origin.lng+"&startY="+origin.lat+"&endX="+destination.lng+"&endY="+destination.lat+"&reqCoordType=WGS84GEO&resCoordType=WGS84GEO&startName=시작위치&endName=끝위치",
+	                    success: function(result){
+	                    	console.log(result);
+	                        console.log("totalDistance(단위: m) :" + result.features[0].properties.totalDistance);
+	                        console.log("totalTime(단위: 초) :" + result.features[0].properties.totalTime);
+	                        
+	                        var now_date = new Date();
+	          				var now_year = now_date.getYear() + 1900;
+	          				// console.log(now_year + " 년");
+	          				var now_month = now_date.getMonth() + 1;
+	          				// console.log(now_month + " 월");
+	          				var now_day = now_date.getDate();
+	          				// console.log(now_day + " 일");
+	          				var now_hour = now_date.getHours();
+	          				// console.log(now_hour + " 시");
+	          				var now_minutes = now_date.getMinutes();
+	          				// console.log(now_minutes + " 분");
+	          				var now_seconds = now_date.getSeconds();
+	          				// console.log(now_seconds + " 초");
+	          				var week = new Array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
+	          				var now_week_num = now_date.getDay();
+	          				var now_week_kor = week[now_date.getDay()];
+// 	          				console.log(now_week_num);
+// 	          				console.log(now_week_kor);
+	          				
+	          				console.log("현재 시간 : "
+	          							+ now_year + " 년 "
+	          							+ now_month + " 월 "
+	          							+ now_day + " 일 - "
+	          							+ now_hour + " 시 "
+	          							+ now_minutes + " 분 "
+	          							+ now_seconds + " 초 "
+	          							+ "(" + now_week_kor + ")");
+	          				
+	          				// 상점 마감시간 확인 함수 실행 - <2017-09-17 Jerome>
+	          				getStoreFinishedTime_Jerome();
+	                    }               
+	                });
+	            });
+      			
+      			
+      		} else {
+      			alert("이동수단이 제대로 설정되지 않음.");
+      		}
+      	}
+      	
+      	// 상점 마감 시간 확인 - <2017-09-17 Jerome>
+      	function getStoreFinishedTime_Jerome() {
+      		console.log("상점 마감시간 확인 함수 실행");
+      	}
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4L5BMWzhMUfgloLbcAiF3DzUuZZuoFvo&libraries=places&callback=initMap">
+    </script>
+<!--     <script src="https://apis.skplanetx.com/tmap/js?version=1&format=javascript&appKey=b9cc3c71-cdbe-351e-a2fe-1c992bdd9ee3"></script> -->
+    
+  </body>
+</html>
